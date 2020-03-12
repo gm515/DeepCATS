@@ -1,6 +1,6 @@
 # DeepCATS
 
-Repository for **D**eeplearning **C**ounting in **A**natomically **T**argeted **S**tructures.
+Repository for **Deep**learning **C**ounting in **A**natomically **T**argeted **S**tructures.
 
 ## Installation
 
