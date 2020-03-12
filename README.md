@@ -22,7 +22,9 @@ Next, in a new command line terminal, run the following command to start cell co
 
 `ipython deepcats.py -- <*Ch2_Stitched_Sections> -maskpath <*SEGRES.tif> -hempath <*HEMRES.tif> -radius 10 -ncpu 8 -structures <DORsm,DORpm>`
 
-`<*Ch2_Stitched_Sections>` The path to the microscopy images for counting
-`<*SEGRES.tif>` The path to the annotation atlas registered to the above data set
-`<*HEMRES.tif>` The path to the hemisphere atlas registered to the above data set
-`<DORsm,DORpm>` The list of structures for counting as a list. Avoid inputting too many structures as all images are stored in RAM is limited by the workstation being used.
+- `<*Ch2_Stitched_Sections>` The path to the microscopy images for counting
+- `<*SEGRES.tif>` The path to the annotation atlas registered to the above data set
+- `<*HEMRES.tif>` The path to the hemisphere atlas registered to the above data set
+- `<DORsm,DORpm>` The list of structures for counting as a list. Avoid inputting too many structures as all images are stored in RAM is limited by the workstation being used.
+
+Additionally, the expected radius of a cell `radius` and the number of cpus `ncpu` can be modified by changing the appropriate value. Plus any other parameters listed in `deepcats.py`.
