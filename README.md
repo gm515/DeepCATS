@@ -27,4 +27,19 @@ Next, in a new command line terminal, run the following command to start cell co
 - `<*HEMRES.tif>` The path to the hemisphere atlas registered to the above data set
 - `<DORsm,DORpm>` The list of structures for counting as a list. Avoid inputting too many structures as all images are stored in RAM is limited by the workstation being used.
 
-Additionally, the expected radius of a cell `-radius` and the number of cpus `-ncpu` can be modified by changing the appropriate value. Plus any other parameters listed in `deepcats.py`.
+Additionally, the expected radius of a cell `-radius` and the number of cpus `-ncpu` can be modified by changing the appropriate value. Plus any other parameters listed in `deepcats.py`, or as listed below.
+
+- `imagepath` Image directory path for counting
+- `-maskpath` Annotation file path for masking
+- `-hempath` Hemisphere file path for hemisphere classification
+- `-structures` List of structures to count within
+- `-oversample` Oversample correction
+- `-start` Start image number if required
+- `-end` End image number if required
+- `-medfilt` Use custom median donut filter
+- `-circthresh` Circularity threshold value
+- `-xyvox` XY voxel size
+- `-zvox` Z voxel size
+- `-ncpu` Number of CPUs to use
+- `-size` Approximate radius of detected objects
+- `-radius` Approximate radius of detected objects
