@@ -6,7 +6,7 @@ Repository for **Deep**learning **C**ounting in **A**natomically **T**argeted **
 
 Get set up with Anaconda (Python 3) then install the deeplearnenv environment with
 
-`conda env create -f environment.yml`
+`conda env create -f deeplearnenv.yml`
 
 The repo contains everything which is needed (plus additional surplus code at the moment).
 
