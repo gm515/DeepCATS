@@ -43,3 +43,23 @@ Additionally, the expected radius of a cell `-radius` and the number of cpus `-n
 - `-ncpu` Number of CPUs to use
 - `-size` Approximate radius of detected objects
 - `-radius` Approximate radius of detected objects
+
+## Models
+
+Currently the best model to use is 2020_03_18_Adam0.0001_BCE_elu_GPUs4_Batch8_Aug6_GM_UNet with details as follows:
+
+```
+============================================
+
+         Model: GM_UNet
+Augmentation n: 6 w/ training 906, val 302
+ Batch per GPU: 8
+        N GPUs: 1
+     Optimiser: Adam
+          Loss: BCE
+    Activation: elu
+Best val. loss: 0.1534
+Execution time: ?
+
+============================================
+```
