@@ -48,8 +48,11 @@ def load_model():
     # model_path = '../models/2019_12_20_UNet_BCE_DICE/focal_unet_model.json'
     # weights_path = '../models/2019_12_20_UNet_BCE_DICE/focal_unet_weights.best.hdf5'
 
-    model_path = '../models/2020_01_22_UNet_BCE_2/focal_unet_model.json'
-    weights_path = '../models/2020_01_22_UNet_BCE_2/focal_unet_weights.best.hdf5'
+    # model_path = '../models/2020_01_22_UNet_BCE_2/focal_unet_model.json'
+    # weights_path = '../models/2020_01_22_UNet_BCE_2/focal_unet_weights.best.hdf5'
+
+    model_path = '../models/2020_03_18_Adam0.0001_BCE_elu_GPUs1_Batch8_Aug6_GM_UNet/GM_UNet_model.json'
+    weights_path = '../models/2020_03_18_Adam0.0001_BCE_elu_GPUs1_Batch8_Aug6_GM_UNet/GM_UNet_weights.best.hdf5'
 
     # Load the classifier model, initialise (and compile if needed)
     with open(model_path, 'r') as f:
