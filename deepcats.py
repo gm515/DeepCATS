@@ -37,6 +37,7 @@ import warnings
 import numpy as np
 import nibabel as nib
 import pandas as pd
+from datetime import datetime
 from filters.gaussmedfilt import gaussmedfilt
 from filters.adaptcircthresh import adaptcircthresh
 from keras.models import model_from_json
@@ -256,7 +257,7 @@ def cellcount(imagequeue, radius, size, circ_thresh, use_medfilt):
         if item is None:
             break
         else:
-            slice_number, image, hemseg_image, row_idx, col_idx, count_path, name = item
+            slice_number, image, hemseg_image, row_idx, col_idx, count_path, name, outdir = item
             centroids = []
 
             if image.shape[0]*image.shape[1] > (radius*2)**2 and np.max(image) != 0.:
@@ -324,7 +325,7 @@ def cellcount(imagequeue, radius, size, circ_thresh, use_medfilt):
                 centroids = [coordfunc(int(c[0]), int(c[1])) for c in centroids]
 
             # Write out results to file
-            csv_file = os.path.join(count_path, 'counts_unet', str(name)+'_unet_count_INQUEUE.csv')
+            csv_file = os.path.join(count_path, outdir, str(name)+'_unet_count_INQUEUE.csv')
 
             # Write out detected centroids to CSV
             # File is locked until writing is complete to prevent writing centroids out of order
@@ -422,8 +423,13 @@ if __name__ == '__main__':
     # Create directory to hold the counts in parent folder of images
     count_path = '/'+os.path.join(*image_path.split(os.sep)[:-1])
 
-    if not os.path.exists(count_path+'/counts_unet'):
-        os.makedirs(count_path+'/counts_unet')
+    starttime = datetime.now()
+    starttime.strftime("%m/%d/%Y, %H:%M:%S")
+
+    outdir = 'deepcats_counts_'+starttime.strftime("%m.%d.%Y")
+
+    if not os.path.exists(os.path.join(count_path, outdir)):
+        os.makedirs(os.path.join(count_path, outdir))
 
     # List of files to count
     count_files = []
@@ -538,7 +544,7 @@ if __name__ == '__main__':
             for name, structure in zip(acr,ids):
                 # If masking is not required, submit to queue with redundat variables
                 if not mask:
-                    imagequeue.put((slice_number, image, [None], [None], [None], count_path, name))
+                    imagequeue.put((slice_number, image, [None], [None], [None], count_path, name, outdir))
                     print (image_path.split(os.sep)[-3]+' Added slice: '+str(slice_number)+' Queue position: '+str(slice_number-zmin)+' Structure: '+str(name)+' [Memory info] Usage: '+str(psutil.virtual_memory().percent)+'% - '+str(int(psutil.virtual_memory().used*1e-6))+' MB\n')
                 else:
                     start = time.time()
@@ -583,7 +589,7 @@ if __name__ == '__main__':
                             hemseg_image_per_structure = hemseg_image_per_structure[idx]
 
                         # Add queue number, image, row and col idx to queue
-                        imagequeue.put((slice_number, image_per_structure, hemseg_image_per_structure, row_idx, col_idx, count_path, name))
+                        imagequeue.put((slice_number, image_per_structure, hemseg_image_per_structure, row_idx, col_idx, count_path, name, outdir))
 
                         image_per_structure = None
                         hemseg_image_per_structure = None
@@ -605,7 +611,7 @@ if __name__ == '__main__':
 
         for name in acr:
             print (name+' oversampling correction')
-            with open(count_path+'/counts_unet/'+str(name)+'_unet_count_INQUEUE.csv') as csvDataFile:
+            with open(os.path.join(count_path, outdir, str(name)+'_unet_count_INQUEUE.csv')) as csvDataFile:
                 csvReader = csv.reader(csvDataFile)
                 centroids = {}
                 for row in csvReader:
@@ -614,17 +620,17 @@ if __name__ == '__main__':
             print (str(sum(map(len, centroids.values())))+' Original uncorrected count')
             keepcentroids = oversamplecorr(centroids,radius)
 
-            with open(count_path+'/counts_unet/'+str(name)+'_unet_count.csv', 'w+') as f:
+            with open(os.path.join(count_path, outdir, str(name)+'_unet_count.csv'), 'w+') as f:
                 for key in sorted(keepcentroids.keys()):
                     if len(keepcentroids[key]) > 0:
                         csv.writer(f, delimiter=',').writerows([val for val in keepcentroids[key]])
 
-            os.remove(count_path+'/counts_unet/'+str(name)+'_unet_count_INQUEUE.csv')
+            os.remove(os.path.join(count_path, outdir, str(name)+'_unet_count_INQUEUE.csv'))
 
         # Oversampling correction and table write-out
         df = pd.DataFrame(columns = ['ROI', 'L', 'R'])
 
-        for file in glob.glob(count_path+'/counts_unet/*_unet_count.csv'):
+        for file in glob.glob(os.path.join(count_path, outdir, '*_unet_count.csv')):
             keepcentroids = pd.read_csv(file, names=['X', 'Y', 'Z', 'Hemisphere'])
             leftcells = len(keepcentroids.loc[keepcentroids['Hemisphere']==0])
             rightcells = len(keepcentroids.loc[keepcentroids['Hemisphere']==1])
@@ -636,7 +642,7 @@ if __name__ == '__main__':
             df = df.append({'ROI':name, 'L':leftcells, 'R':rightcells}, ignore_index=True)
 
         # Write dataframe to csv
-        with open(count_path+'/counts_unet/_counts_table.csv', 'w') as f:
+        with open(os.path.join(count_path, outdir, '_counts_table.csv'), 'w') as f:
             df.to_csv(f, index=False)
 
         print ('')
