@@ -517,7 +517,12 @@ if __name__ == '__main__':
             # image = Image.open(image_path+'/'+count_files[slice_number], 'r')
             # temp_size = image.size
             # image = np.frombuffer(image.tobytes(), dtype=np.uint8, count=-1).reshape(image.size[::-1])
+
+            # Load image -1, 0, +1 and max project
             image = tifffile.imread(image_path+'/'+count_files[slice_number], key=0).astype(np.float32)
+            image = np.maximum(image, tifffile.imread(image_path+'/'+count_files[slice_number-1], key=0).astype(np.float32))
+            image = np.maximum(image, tifffile.imread(image_path+'/'+count_files[slice_number+1], key=0).astype(np.float32))
+
             temp_size = image.shape[::-1]
             image_max = np.max(image)
 
