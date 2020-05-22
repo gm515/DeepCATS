@@ -626,7 +626,7 @@ if __name__ == '__main__':
                     if len(keepcentroids[key]) > 0:
                         csv.writer(f, delimiter=',').writerows([val for val in keepcentroids[key]])
 
-            os.remove(os.path.join(count_path, outdir, str(name)+'_unet_count_INQUEUE.csv'))
+            # os.remove(os.path.join(count_path, outdir, str(name)+'_unet_count_INQUEUE.csv'))
 
         # Oversampling correction and table write-out
         df = pd.DataFrame(columns = ['ROI', 'L', 'R'])
@@ -641,6 +641,9 @@ if __name__ == '__main__':
             print (name+', '+str(leftcells+rightcells)+' Final corrected count, L: '+str(leftcells)+' R: '+str(rightcells))
 
             df = df.append({'ROI':name, 'L':leftcells, 'R':rightcells}, ignore_index=True)
+
+        # Remove any duplicate cells
+        df = df.drop_duplicates()
 
         # Write dataframe to csv
         with open(os.path.join(count_path, outdir, '_counts_table.csv'), 'w') as f:
