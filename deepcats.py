@@ -150,7 +150,7 @@ if __name__ == '__main__':
         hem = False
 
     print("User defined parameters")
-    print("Image path: {} \nAnnotation path: {} \nHemisphere path: {} \nStructure list: {} \nOversample: {} \nStart: {} \nEnd: {} \nCustom median donut filter: {} \nCircularity threshold: {} \nXYvox: {} \nZvox: {} \nncpu: {} \nSize: {} \nRadius: {}".format(
+    execparams = "Image path: {} \nAnnotation path: {} \nHemisphere path: {} \nStructure list: {} \nOversample: {} \nStart: {} \nEnd: {} \nCustom median donut filter: {} \nCircularity threshold: {} \nXYvox: {} \nZvox: {} \nncpu: {} \nSize: {} \nRadius: {}".format(
             image_path,
             mask_path,
             hem_path,
@@ -165,7 +165,8 @@ if __name__ == '__main__':
             ncpu,
             size,
             radius
-            ))
+            )
+    print(execparams)
     print('')
 
     """
@@ -180,8 +181,13 @@ if __name__ == '__main__':
 
     outdir = 'deepcats_counts_'+starttime.strftime("%m.%d.%Y")
 
+    # Create folder for output files
     if not os.path.exists(os.path.join(count_path, outdir)):
         os.makedirs(os.path.join(count_path, outdir))
+
+    # Write out the parameters to file
+    with open(os.path.join(count_path, outdir, 'paramfile.txt'), 'w') as paramfile:
+        print(execparams, file=paramfile)
 
     # List of files to count
     count_files = []
