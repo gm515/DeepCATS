@@ -284,13 +284,14 @@ if __name__ == '__main__':
             image = np.maximum(image, tifffile.imread(image_path+'/'+count_files[slice_number-1], key=0).astype(np.float32))
             image = np.maximum(image, tifffile.imread(image_path+'/'+count_files[slice_number+1], key=0).astype(np.float32))
 
+            # PIL.Image.size -> (cols, rows)
+            # tifffile.shape -> (rows, cols)
+
             orig_size = image.shape[::-1]
             process_size = tuple(int(x*downsize) for x in image.shape[::-1])
             image_max = np.max(image)
 
-            image = Image.fromarray(image).resize(process_size, Image.LANCZOS)
-
-            end
+            image = np.array(Image.fromarray(image).resize(process_size, Image.LANCZOS))
 
             if mask:
                 # Get annotation image for slice
