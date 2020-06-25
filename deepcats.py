@@ -290,6 +290,8 @@ if __name__ == '__main__':
 
             image = Image.fromarray(image).resize(process_size, Image.LANCZOS)
 
+            end
+
             if mask:
                 # Get annotation image for slice
                 mask_image = np.array(Image.fromarray(seg[slice_number]).resize(process_size, Image.NEAREST))

@@ -40,7 +40,7 @@ def cellcount(imagequeue, radius, size, circ_thresh, use_medfilt):
         if item is None:
             break
         else:
-            slice_number, image, hemseg_image, row_idx, col_idx, count_path, name, outdir, downsize = item
+            slice_number, image, hemseg_image, row_idx, col_idx, count_path, name, outdir = item
             centroids = []
 
             if image.shape[0]*image.shape[1] > (radius*2)**2 and np.max(image) != 0.:
@@ -97,15 +97,15 @@ def cellcount(imagequeue, radius, size, circ_thresh, use_medfilt):
                 if row_idx is not None:
                     # Convert coordinate of centroid to coordinate of whole image if mask was used
                     if hemseg_image is not None:
-                        coordfunc = lambda celly, cellx : (col_idx[cellx], row_idx[celly], slice_number, int(hemseg_image[celly,cellx]))
+                        coordfunc = lambda celly, cellx: (col_idx[cellx], row_idx[celly], slice_number, int(hemseg_image[celly,cellx]))
                     else:
-                        coordfunc = lambda celly, cellx : (col_idx[cellx], row_idx[celly], slice_number)
+                        coordfunc = lambda celly, cellx: (col_idx[cellx], row_idx[celly], slice_number)
                 else:
-                    coordfunc = lambda celly, cellx : (cellx, celly, slice_number)
+                    coordfunc = lambda celly, cellx: (cellx, celly, slice_number)
 
                 # Centroids are currently (row, col) or (y, x)
                 # Flip order so (x, y) using coordfunc
-                centroids = [coordfunc(int(c[0]*(1./downsize)), int(c[1]*(1./downsize))) for c in centroids]
+                centroids = [coordfunc(int(c[0]), int(c[1])) for c in centroids]
 
             # Write out results to file
             csv_file = os.path.join(count_path, outdir, str(name)+'_unet_count_INQUEUE.csv')
