@@ -281,8 +281,8 @@ if __name__ == '__main__':
 
             # Load image -1, 0, +1 and max project
             image = tifffile.imread(image_path+'/'+count_files[slice_number], key=0).astype(np.float32)
-            image = np.maximum(image, tifffile.imread(image_path+'/'+count_files[slice_number-1], key=0).astype(np.float32))
-            image = np.maximum(image, tifffile.imread(image_path+'/'+count_files[slice_number+1], key=0).astype(np.float32))
+            # image = np.maximum(image, tifffile.imread(image_path+'/'+count_files[slice_number-1], key=0).astype(np.float32))
+            # image = np.maximum(image, tifffile.imread(image_path+'/'+count_files[slice_number+1], key=0).astype(np.float32))
 
             # PIL.Image.size -> (cols, rows)
             # tifffile.shape -> (rows, cols)
