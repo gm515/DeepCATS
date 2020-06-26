@@ -359,7 +359,7 @@ if __name__ == '__main__':
                             hemseg_image_per_structure = hemseg_image_per_structure[idx]
 
                         # Add queue number, image, row and col idx to queue
-                        imagequeue.put((slice_number, image_per_structure, hemseg_image_per_structure, row_idx, col_idx, count_path, name, outdir, downsize))
+                        imagequeue.put((slice_number, image_per_structure, hemseg_image_per_structure, row_idx, col_idx, count_path, name, outdir))
 
                         image_per_structure = None
                         hemseg_image_per_structure = None
