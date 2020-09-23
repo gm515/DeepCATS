@@ -59,8 +59,10 @@ Everything is correct. If it complains about any missing modules, then go ahead 
 
 ### Instructions
 
-1. Make sure the NAS drive or location where the tile data is stored is accessible from the computer doing the stitching. 
+1. Make sure the NAS drive or location where the tile data is stored is accessible from the computer doing the stitching.
+
 2. Activate the environment and run the stitching script `exec(open("./parasyncstitchicGM_v2.py").read())`.
+
 3. You will be greated with the following
 ```
 ------------------------------------------
@@ -72,6 +74,7 @@ Please note this creates a temporary folder to hold images. You require at least
 Press Enter to continue:
 ```
 Press enter to confirm.
+
 4. This will be followed by input respones. Fill in as necessary for all the required values. An example is as follows.
 ```
 ------------------------------------------
@@ -92,16 +95,52 @@ Perform additional downsize? (y/n): y
 
 Downsize amount (default 0.054 for 10 um/pixel):
 ```
-Note that default values listed can be accessed by just pressing enter and leaving the input value blank. For three channels on TissueCyte, you can use either channels 1-3 for stitching. Option 0 is sometimes handy just to merge everything together across all channels so you see all data. If you are only insterested in GFP signal, for example, you can of course just choose to stitch channel 2. 
 
-If everything is correct, then the stitching should proceed. It may take a while to give you updates on the stitching process. If there is no immediate error and exiting of the script, then everything is likely fine.
+Note that default values listed can be accessed by just pressing enter and leaving the input value blank. For three channels on TissueCyte, you can use either channels 1-3 for stitching. Option 0 is sometimes handy just to merge everything together across all channels so you see all data. If you are only insterested in GFP signal, for example, you can of course just choose to stitch channel 2. I would also recommend leaving the default downsizing in place although this only works if you are doing a 2080 x 2080 pixel TissueCyte scan. For this scenario, the downsize option is chosen to make give a 10 um/pixel resolution which is ideal for the following registration steps. For a different scan resoltuion, choose appropriately or ignore the downsize step and do separately. 
+
+If everything is correct, then the stitching should proceed. It may take a while to give you updates on the stitching process. If there is no immediate error and exiting of the script, then everything is likely fine. All stitched data gets saved into it's own `Mosaic` folder within the scan directory that was input. You may change this if this is not required by editing the script. 
 
 This script had to be edited several times so by all means make your own changes to the script. I'd like to think that everything is commented nicely. At one point there was a slack notification integration so you would get notified when the stitching finished. This requires a URL hook for the slack channel you want to ping a notification to, but at one point Slack changed the security to affect how the integration worked, and therefore it doesn't work in its current state. 
 
+## Registration
+
+When all the data is stitched you will need to downsize to match a 10 um/pixel resolution which is the same resolution as the Allen Institute Common Coordinate Framework V3 (CCF3). This is done as part of the stitching if chosen. You then need to convert all the images into a single TIFF file. Use ImageJ/Fiji for this as it should only be a 1.5GB in total (you are using the downsized images not the original resolution!). You may need to also make some intensity adjustments to the images if it's looking a little too dark. If there is a lot of noise, you may also want to throw a 3D filtering process such as the median filter. The 3D kernel ensures the filter operates along the Z-axis as well as the X and Y. At this point though, you should have a TIFF file which contains the downsampled version of your brain for registration. This is the fixed image data containing the autofluorescence (or as much strucutral information as possible).
+
+### Installation
+
+The registration is done using SimpleElastix. Check out https://simpleelastix.readthedocs.io for the documents, installation, and a guide. It is well worth reading through it as the author, Kasper Marstal, does a great job of explaining the nuances of registration. If SimpleElastix has not been installed, go ahead and install it, ideally in a new Anaconda envirnment, and check it works. Follow the guide for some guidance on the set up.
+
+You may also need to install `skimage`. 
+
+### Instructions
+
+There is a little set up which bascailly requires you have the relevant files for stitching. Make sure you have a folder called `atlases` which contains `annotation_10um.tif` and `average_10um.tif`. These are the annotation files and average files for the CCF3 atlases respectively. You will also need a folder called `parametermaps` containing the parameter maps which will guide the registration process. You need three registration maps for the rigid, affine and bspline components. You also only need my own paramter maps, with `GM` in the name, although there should also be a bunch of others from other literature. The `GM` maps are the most robust however. 
+
+1. Activate your environment which has SimpleElastix and skimage installed. 
+2. Run `registration.py` from the command line using the following command and the file path to the downsized data you created earlier. 
+`ipython registration.py -- /path/to/downsized/tissuecyte/autofluoresence/data.tif`
+
+By default this will use the `GM` parameter maps and run three stages of registration on your downsized data. There should be output to the console to inform your of progress. Overall expect the process to take around 30 to 40 mins. If there are any errors then check file paths and dive into the script to see what is wrong. You may also input other parameters for registraiton, as `-parameter value`, for example `ipython registration.py -- /path/to/downsized/tissuecyte/data.tif -first 101`. The other parmeters are listed below.
+```
+autoflpath: 'File path for autofluorescence atlas'
+-avgpath: default='atlases/average_10um.tif': 'File path for average atlas'
+-annopath: default='atlases/annotation_10um.tif': 'File path for annotation atlas'
+-first: default=0: 'First slice in average atlas'
+-last: default=1320: 'Last slice in average atlas'
+-fixedpts: default=False: 'Path for fixed points'
+-movingpts: default=False: 'path for moving points'
+```
+The `first` and `last` parameters are only required if you think you need to restrict the extent of the CCF3 atlas during registration. Sometimes the initial global alignment performed with the rigid and the affine stages do not actually manage to work that well. It could be that your data doesn't cover the same extent of the brain. Maybe you only imaged the thalamus but the CCF3 atlases contain the full brain. This would be the time to use those paramters to restrict the rostral-caudal extent of the CCF3 atlas to aid the registration. 
+
+The `fixedpts` and `movingpts` are only useful if you want to input a set of landmarked points between the fixed (your data from TissueCyte) and the moving (the CCF3 atlases) to aid the registration. Each listed point has correspondance between each data set and tells Elastix to reduce the overall distance between corresponding points during the registration. Manual guidance in this way is "handy" but time consuming and is also non-repeatable between samples for the simple fact that you will be landmarking different spots with a different number of landmarks between different samples. Fixed and moving points are however, useful for assessing registration accuracy as you can calculate a Euclidean distance error from the points. I would recomment playing around with the fized and moving points. Have a look at `forward_transform_pts_example` and the `transformpoints.py` script for an example on how points can be used to forward transform during registration to calculate an error.
+
+After the registration is complete, there should be a folder called `Registration_<paramterfilenames>_<date>` with files generated in the folder where the autofluorescence TissueCyte TIFF data (i.e. the file path you input in step 2.). You may want to open the files and overlay them onto the autofluorescence data to check everything matches up. This can be done in ImageJ/Fiji. As a tip, the segmentation result is saved as a 32-bit TIFF file, but the range of pixel intensities is squashed into the first few thousand values from a possible range of 2<sup>32</sup>. This makes the segmentation result look completely empty if you edit the contrast in ImageJ/Fiji and set the upper threshold (use the Set button as otherwise it becomes fiddly), and change the upper limit to 2000. This will compress all pixel values to between 0-2000 and will make things much easier to see. You can also run an edge filter to convert the structures to outlines and then use the colour through `Image > Color Merge > Channels` to overlay the outlines of the segmentation result with the autofluorescence. There should also be a hemisphere atlas created which divides the annotation atlas in half and is needed to do the cell counting in the next step. 
+
+## DeepCATS cell counting using the registration result
 
 
 
-## Installation
+### Installation
 
 Get set up with Anaconda (Python 3) then install the deeplearnenv environment with
 
@@ -109,7 +148,7 @@ Get set up with Anaconda (Python 3) then install the deeplearnenv environment wi
 
 The repo contains everything which is needed (plus additional surplus code at the moment).
 
-## Running
+### Instructions
 
 To run the automated counting script, first start the flask/gunicorn server by navigating to `flaskgunicornserver` and running the following in the command line.
 
@@ -143,7 +182,7 @@ Additionally, the expected radius of a cell `-radius` and the number of cpus `-n
 - `-size` Approximate radius of detected objects
 - `-radius` Approximate radius of detected objects
 
-## Models
+### Models
 
 Currently the best model to use is 2020_03_18_Adam0.0001_BCE_elu_GPUs4_Batch8_Aug6_GM_UNet with details as follows:
 
