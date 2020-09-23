@@ -1,0 +1,66 @@
+// Affine parameter map for Indy
+
+(FixedInternalImagePixelType "float")
+(MovingInternalImagePixelType "float")
+
+(FixedImageDimension 2)
+(MovingImageDimension 2)
+
+(UseDirectionCosines "true")
+
+// **************** Main Components **************************
+
+(Registration "MultiResolutionRegistration")
+(Interpolator "BSplineInterpolator")
+(ResampleInterpolator "FinalBSplineInterpolator")
+(Resampler "DefaultResampler")
+
+(FixedImagePyramid "FixedRecursiveImagePyramid")
+(MovingImagePyramid "MovingRecursiveImagePyramid")
+
+(Optimizer "AdaptiveStochasticGradientDescent")
+(Transform "AffineTransform")
+(Metric "AdvancedMattesMutualInformation")
+
+// ***************** Transformation **************************
+
+(AutomaticScalesEstimation "true")
+
+(AutomaticTransformInitialization "true")
+(AutomaticTransformInitializationMethod "CenterOfGravity")
+
+(HowToCombineTransforms "Compose")
+
+// ******************* Similarity measure *********************
+
+(NumberOfHistogramBins 32)
+
+// ******************** Multiresolution **********************
+
+(NumberOfResolutions 1)
+(WriteResultImageAfterEachResolution "false" "false" "false" "false" "false" "false")
+
+// ******************* Optimizer ****************************
+
+(MaximumNumberOfIterations 500)
+
+// **************** Image sampling **********************
+
+(NumberOfSpatialSamples 2048)
+(MaximumNumberOfSamplingAttempts 10)
+
+(NewSamplesEveryIteration "true")
+(ImageSampler "Random")
+
+// ************* Interpolation and Resampling ****************
+
+(BSplineInterpolationOrder 3)
+
+(FinalBSplineInterpolationOrder 3)
+
+(DefaultPixelValue 0)
+
+(WriteResultImage "false")
+
+(ResultImagePixelType "float")
+(ResultImageFormat "tif")

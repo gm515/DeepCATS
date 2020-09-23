@@ -1,0 +1,74 @@
+// BSpline parameter map for Indy
+
+(FixedInternalImagePixelType "float")
+(MovingInternalImagePixelType "float")
+
+(FixedImageDimension 2)
+(MovingImageDimension 2)
+
+(UseDirectionCosines "true")
+
+// **************** Main Components **************************
+
+(Registration "MultiMetricMultiResolutionRegistration")
+(Interpolator "BSplineInterpolator")
+(ResampleInterpolator "FinalBSplineInterpolator")
+(Resampler "DefaultResampler")
+
+(FixedImagePyramid "FixedSmoothingImagePyramid")
+(MovingImagePyramid "MovingSmoothingImagePyramid")
+
+(Optimizer "AdaptiveStochasticGradientDescent")
+
+(Transform "BSplineTransform")
+
+(Metric "AdvancedNormalizedCorrelation")
+
+// ***************** Transformation **************************
+
+(AutomaticScalesEstimation "true")
+
+(AutomaticTransformInitialization "true")
+(AutomaticTransformInitializationMethod "CenterOfGravity")
+
+(FinalGridSpacingInVoxels  50.0 50.0 50.0)
+
+(HowToCombineTransforms "Compose")
+
+// ******************* Similarity measure *********************
+
+(NumberOfHistogramBins 32)
+
+(Metric0Weight 1.0)
+(Metric1Weight 0.1)
+
+// ******************** Multiresolution **********************
+
+(NumberOfResolutions 2)
+
+(WriteResultImageAfterEachResolution "false" "false" "false" "false")
+
+// ******************* Optimizer ****************************
+
+(MaximumNumberOfIterations 500)
+
+// **************** Image sampling **********************
+
+(NumberOfSpatialSamples 2048)
+
+(UseRandomSampleRegion "true")
+(NewSamplesEveryIteration "true")
+(ImageSampler "Random")
+
+// ************* Interpolation and Resampling ****************
+
+(BSplineInterpolationOrder 1)
+
+(FinalBSplineInterpolationOrder 3)
+
+(DefaultPixelValue 0)
+
+(WriteResultImage "false")
+
+(ResultImagePixelType "float")
+(ResultImageFormat "tif")
