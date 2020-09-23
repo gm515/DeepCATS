@@ -2,6 +2,13 @@
 
 Repository for **Deep**learning **C**ounting in **A**natomically **T**argeted **S**tructures and general TissueCyte usage. The goal of this repo is to provide the tools and instructions for stitching TissueCyte images, registering with the Allen Brain Atlas and cell counting using the DeepCATS pipeline. 
 
+This repo has broken down into different approproately-named folders.
+
+- `stitching`: contains anything regarding the tile stitching process
+- `registration`: contains anything regarding the registration to the CCF3 atlases
+- `deepcats`: contains anything to automatically cell count using the registration result
+- `trainingdeepcats`: contains anything required to train the neural network model which does inference in the cell counting pipeline
+
 ## Stitching
 
 During the entire processing pipeline, the first thing to do is stitch the tile images generated through TissueCyte. Stitching can be conducted alongside the acquisition, so it is recommended that as soon as the TissueCyte scan is initiated, you go to the computer which will process the data and set up the stitching.
@@ -114,7 +121,7 @@ You may also need to install `skimage`.
 
 ### Instructions
 
-There is a little set up which bascailly requires you have the relevant files for stitching. Make sure you have a folder called `atlases` which contains `annotation_10um.tif` and `average_10um.tif`. These are the annotation files and average files for the CCF3 atlases respectively. You will also need a folder called `parametermaps` containing the parameter maps which will guide the registration process. You need three registration maps for the rigid, affine and bspline components. You also only need my own paramter maps, with `GM` in the name, although there should also be a bunch of others from other literature. The `GM` maps are the most robust however. 
+There is a little set up which bascailly requires you have the relevant files for stitching. Make sure you have a folder called `atlases` which contains `annotation_10um.tif` and `average_10um.tif`. These are the annotation files and average files for the CCF3 atlases respectively. You will also need a folder called `parametermaps` containing the parameter maps which will guide the registration process. You need three registration maps for the rigid, affine and bspline components. You also only need my own paramter maps, with `GM` in the name, although there should also be a bunch of others from other literature. The `GM` maps are the most robust however. Feel free to check into the actual parameters in the files themselves as this is handy for getting and idea about what is happening. Some scenarios might require the use of different parameters as well. 
 
 1. Activate your environment which has SimpleElastix and skimage installed. 
 2. Run `registration.py` from the command line using the following command and the file path to the downsized data you created earlier. 
@@ -138,15 +145,15 @@ After the registration is complete, there should be a folder called `Registratio
 
 ## DeepCATS cell counting using the registration result
 
-
+The cell counting pipeline uses the registration result to target counting to particular structures. You could also ignore this and simply count in a stack of images. This section only concerns the execution of the pipeline. The next section will look at creating new models, adding data and generally improving the accuracy.
 
 ### Installation
 
-Get set up with Anaconda (Python 3) then install the deeplearnenv environment with
+Get set up with Anaconda (Python 3) then install the deeplearnenv environment using the file in the `additionaltools` directory.
 
 `conda env create -f deeplearnenv.yml`
 
-The repo contains everything which is needed (plus additional surplus code at the moment).
+You do not need to create a new environment prior to this as the goal of the above command is to duplicate the envirnment in the `deeplearnenv.yml` file. 
 
 ### Instructions
 
@@ -201,3 +208,54 @@ Execution time: ?
 
 ============================================
 ```
+
+## Adding/Improving DeepCATS
+
+### Adding new data
+
+The cell counting pipeline can be modified to use newer models trained on additional data. First, all the training data can be found under the `data` directory. There is a list of different data sets for different uses. The data set used for the model above was `GM_MG_combined_data_n217`. Each data folder is structured in the same way, however. There are `images` and `masks` which contain the image data as 512 x 512 pixel shots taken from serial two-photon scan with TissueCyte, alongside manually drawn masks. Images are 8-bit at 0.54 pixel resolution in XY. Masks are 8-bit with 0.54 pixel resolution in XY, with pixel value 255 denoting cell signal. If you want to add more training data to the model, you are free to create a new folder (or add to the existing folder) with your own data set. This data could be your own manual segmentation or from repositories online. Overall, the more training data, the better!
+
+### Different U-Net architectures
+
+Different neural network architectures can be found in `architectures`. These are the actualy structures of the neural networks. In the cases for the publication and thesis, the neural network architecture was the U-Net created under `unetmodelv2.py`. There exists other versions of the network such as the Nested U-Net and MultiRes U-Net. Versions of these models were found online in other GitHub respositories and were initially tested but did not show any improvement. However, that could be for lack of trying rather than issues with the model architecture themselves. You may find several different versions of the U-Net model online in other GitHub repos, but ulitimately, they all perform differently. Some might use dropout layers, some might use batch normalisation, some might do weights transpose convolution whilst some to simple upscaling transposed convolution. Frustratingly, there is little consistency for the same networks with many different interpretations. For this reason it is also worth exploring your own versions. 
+
+### Training a new model with new data(?), or new architecture(?), or anything(?)
+
+The scripts for training are broken down into five files.
+
+- `augmentation.py`: concerns with the data augmentation to bolster the data set size for training and validation
+- `cleanup.py`: concerns simple commands to clean up the directory after training to remove anything not needed
+- `losses.py`: contains a bunch of different loss functions from sources online or my own
+- `preprocessing.py`: does some preprocessing of the training data to prepare it for use with the network training
+- `trainmodel.py`: the script which does everything from preparing to training the model
+
+To start with, if you'd like to explore different loss function, you can explore the `losses.py` script and add your own. I found a bunch online or wrote my own functions. Different loss functions are tailored to different network challanges. Image segmentation is tricky so loss functions for use here typically stick to functions which use true or false, positive or negative detections. Have a look online though as new functions are published all the time. 
+
+Next, the augmentation side can generally be left alone. However, you might want to modify the actual transformations that are done. Look under the `def augment(dir, n):` function to see what transformations and parameters are being conducted. You can comment out some of these lines or add your own or change the parameter values to allow for more drastic or constrained transformations. You can also write a custom class as I did for the Poisson noise to do your own trannsformation which is not provided by the Augmentor module. 
+
+If you would like to modify anything about how the data is preprocessed, then look at the `preprocessing.py` script. Preprocessing includes anything with collating the data together, running the augmentation and splitting the data into the relevant temporary folders (Augmentor dumps everything into the same directory so it is necessary to split things back up again). The script also goes through to identify any NaN or problematic images which might be completely empty or have bad values in them, etc. I found that this was important to ensuring the training went smoothly. Sometimes I made a change to the `augmentation.py` script which resulted in some bad images being generated which would lead to bad training. I wouldn't know about it until it came to actually training, at which point I usually went to the `preprocessing.py` script to figure out why and to fix it. 
+
+Finally, the actual training is executed by running the `trainmodel.py` through the command line as 
+`ipython -- trainmodel.py Adam 1e-4 BCE elu 1 GM_UNet 6` 
+where each parameter is listed to declare the specifics of training. I listed some obvious go-to parameters under the `if __name__ == '__main__':` function. For example `Adam` uses the Adam optimiser, or `SGD` uses the SGD optimiser. For any others you can add to the script. It just makes executing the model training a little simpler as you can pass in parameters. The same is true for the learning rate `1e-4` as above, the loss function `BCE` as above, the activation function `elu` as above, the number of GPUs `1` as above, the model architecture `GM_UNet` as above, and the amount of augmentation fold to perform `6`-fold as above. Again, you can add any other parameters you would like if you have a new loss function you want to try. Setting the number of GPUs is useful if you will run the training on the hpc cluster. In which case you can get set it to something like `4` and use 4 GPUs at once to really expedite the training. 
+
+An important line is 
+`training_dir = 'data/GM_MG_combined_data_n217'`
+where you will want to put the location of the new folder of data if you have added your own.
+
+Another important section is
+```
+    with strategy.scope():
+        if model_arg6 == 'GM_UNet': model = unetmodelv2.unet(inputsize=(None, None, 1), optfn=optimizer, lossfn=loss, actfn=act) # Works best
+        if model_arg6 == 'GM_UNetv3': model = unetmodelv3.unet(inputsize=(None, None, 1), optfn=optimizer, lossfn=loss, actfn=act) # Works best
+        if model_arg6 == 'ZX_UNet': model = unetmodel.unet(inputsize=(None, None, 1), optfn=optimizer, lossfn=loss, actfn=act)
+        if model_arg6 == 'ZX_NestedUNet': model = nestedunetmodel.nestedunet(inputsize=(None, None, 1), optfn=optimizer, lossfn=loss, actfn=act)
+        if model_arg6 == 'ZX_MultiResUNet': model = multiresunetmodel.multiresunet(inputsize=(None, None, 1), optfn=optimizer, lossfn=loss, actfn=act) # Does not work
+
+        model.compile(optimizer=optimizer, loss=[loss], metrics=[losses.dice_loss, loss])
+```
+where you will need to check that the model architecture is correctly chosen (`GM_UNet` works fine last I checked). Then the last line is necessary for declaring what loss is required. Notice there are two metrics as `metrics=[losses.dice_loss, loss]`. The loss function you choose is the one which is used for training and is set as the variable `loss` earlier in the script. The other is `losses.dice_loss` which is a DICE loss function. This value is used to select the best model for learning as declared in the line
+`checkpoint = ModelCheckpoint(filepath, monitor='val_dice_loss', verbose=1, save_best_only=True, mode='min')`
+where we explictely state that we want the model with the minimum dice loss (i.e. the model which gives the best performance according to the DICE metric). 
+
+Everything else in the script
