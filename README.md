@@ -145,7 +145,7 @@ After the registration is complete, there should be a folder called `Registratio
 
 ## DeepCATS cell counting using the registration result
 
-The cell counting pipeline uses the registration result to target counting to particular structures. You could also ignore this and simply count in a stack of images. This section only concerns the execution of the pipeline. The next section will look at creating new models, adding data and generally improving the accuracy.
+The cell counting pipeline uses the registration result to target counting to particular structures. You could also ignore this and simply count in a stack of images. This section only concerns the execution of the pipeline. The next section will look at creating new models, adding data and generally improving the accuracy. The important modules for this are Keras and TensorFlow so it is worth looking up what they are and how to use them!
 
 ### Installation
 
@@ -228,19 +228,24 @@ The scripts for training are broken down into five files.
 - `losses.py`: contains a bunch of different loss functions from sources online or my own
 - `preprocessing.py`: does some preprocessing of the training data to prepare it for use with the network training
 - `trainmodel.py`: the script which does everything from preparing to training the model
+- `fullimageprediction.py`: example script which shows how to predict with a new image
 
 To start with, if you'd like to explore different loss function, you can explore the `losses.py` script and add your own. I found a bunch online or wrote my own functions. Different loss functions are tailored to different network challanges. Image segmentation is tricky so loss functions for use here typically stick to functions which use true or false, positive or negative detections. Have a look online though as new functions are published all the time. 
 
 Next, the augmentation side can generally be left alone. However, you might want to modify the actual transformations that are done. Look under the `def augment(dir, n):` function to see what transformations and parameters are being conducted. You can comment out some of these lines or add your own or change the parameter values to allow for more drastic or constrained transformations. You can also write a custom class as I did for the Poisson noise to do your own trannsformation which is not provided by the Augmentor module. 
 
-If you would like to modify anything about how the data is preprocessed, then look at the `preprocessing.py` script. Preprocessing includes anything with collating the data together, running the augmentation and splitting the data into the relevant temporary folders (Augmentor dumps everything into the same directory so it is necessary to split things back up again). The script also goes through to identify any NaN or problematic images which might be completely empty or have bad values in them, etc. I found that this was important to ensuring the training went smoothly. Sometimes I made a change to the `augmentation.py` script which resulted in some bad images being generated which would lead to bad training. I wouldn't know about it until it came to actually training, at which point I usually went to the `preprocessing.py` script to figure out why and to fix it. 
+If you would like to modify anything about how the data is preprocessed, then look at the `preprocessing.py` script. Preprocessing includes anything with collating the data together, running the augmentation and splitting the data into the relevant temporary folders (Augmentor dumps everything into the same directory so it is necessary to split things back up again). It also importantly splits the data into training and validation directories with a 75% training and 25% validation split. The script also goes through to identify any NaN or problematic images which might be completely empty or have bad values in them, etc. I found that this was important to ensuring the training went smoothly. Sometimes I made a change to the `augmentation.py` script which resulted in some bad images being generated which would lead to bad training. I wouldn't know about it until it came to actually training, at which point I usually went to the `preprocessing.py` script to figure out why and to fix it. 
 
 Finally, the actual training is executed by running the `trainmodel.py` through the command line as 
+
 `ipython -- trainmodel.py Adam 1e-4 BCE elu 1 GM_UNet 6` 
-where each parameter is listed to declare the specifics of training. I listed some obvious go-to parameters under the `if __name__ == '__main__':` function. For example `Adam` uses the Adam optimiser, or `SGD` uses the SGD optimiser. For any others you can add to the script. It just makes executing the model training a little simpler as you can pass in parameters. The same is true for the learning rate `1e-4` as above, the loss function `BCE` as above, the activation function `elu` as above, the number of GPUs `1` as above, the model architecture `GM_UNet` as above, and the amount of augmentation fold to perform `6`-fold as above. Again, you can add any other parameters you would like if you have a new loss function you want to try. Setting the number of GPUs is useful if you will run the training on the hpc cluster. In which case you can get set it to something like `4` and use 4 GPUs at once to really expedite the training. 
+
+where each parameter is listed to declare the specifics of training. I listed some obvious go-to parameters under the `if __name__ == '__main__':` function. For example `Adam` uses the Adam optimiser, or `SGD` uses the SGD optimiser. For any others you can add to the script. It just makes executing the model training a little simpler as you can pass in parameters. The same is true for the learning rate `1e-4` as above, the loss function `BCE` as above, the activation function `elu` as above, the number of GPUs `1` as above, the model architecture `GM_UNet` as above, and the amount of augmentation fold to perform `6`-fold as above. Again, you can add any other parameters you would like if you have a new loss function you want to try. Setting the number of GPUs is useful if you will run the training on the hpc cluster. In which case you can get set it to something like `4` and use 4 GPUs at once to really expedite the training. Parameter order is important as the script reads the parameters sequentially (this could be changed so parameters are declared using a `-parmeter value` system). 
 
 An important line is 
+
 `training_dir = 'data/GM_MG_combined_data_n217'`
+
 where you will want to put the location of the new folder of data if you have added your own.
 
 Another important section is
@@ -256,6 +261,67 @@ Another important section is
 ```
 where you will need to check that the model architecture is correctly chosen (`GM_UNet` works fine last I checked). Then the last line is necessary for declaring what loss is required. Notice there are two metrics as `metrics=[losses.dice_loss, loss]`. The loss function you choose is the one which is used for training and is set as the variable `loss` earlier in the script. The other is `losses.dice_loss` which is a DICE loss function. This value is used to select the best model for learning as declared in the line
 `checkpoint = ModelCheckpoint(filepath, monitor='val_dice_loss', verbose=1, save_best_only=True, mode='min')`
-where we explictely state that we want the model with the minimum dice loss (i.e. the model which gives the best performance according to the DICE metric). 
+where we explictely state that we want the model with the minimum dice loss (i.e. the model which gives the best performance according to the DICE metric).
 
-Everything else in the script
+Another important line is
+
+`early = EarlyStopping(monitor='val_dice_loss', mode='min', patience=30, verbose=1)`
+
+which evokes early stopping if the validation DICE loss does not decrease after 30 training epochs. This is done to stop unnecessary processing when the model is clearly not learning any more. 
+
+Another line is 
+
+`redonplat = ReduceLROnPlateau(monitor='val_dice_loss', mode='min', patience=10, verbose=1)`
+
+You might know that the optimiser uses a learning rate to control how much the weights in the network are allowed to be modified. Low learning rates prevent overally drastic weight modifications. High learning rates do the opposite. Here we reduce the learning rate if there is no improvement in DICE loss after 10 epochs, and allows the learning rate to be slightly modified during training to improve overall network performance.
+
+Although not used in thesis and publications, the line
+
+`modalpha = AlphaScheduler(alpha, delay, reduce_alpha)`
+
+is important if you want to modify anything in the loss function during the training procedure. For some loss functions, you can weight the amount of false positive or false negative for example, by passing in an alpha value which is passed into the `AlphaScheduler` class at the top of the script. This does have some profound impact on the overall training and can allow you to focus on training the network for a particular challenge at the start, then shift the training over many epochs to focus on a different challenge. 
+
+The last code block of importance is
+```
+    history = model.fit(train_x, train_y,
+        validation_data=(val_x, val_y),
+        batch_size=batch,
+        epochs=250,
+        shuffle=True,
+        callbacks=callbacks_list)
+ ```
+ which actually does the training process. We fit the U-net model using the training image data (`train_x`) with the training mask data (`train_y`) and also validate using validation image data (`val_x`) and validation mask data (`val_y`). Recall that these are split in the preprocessing.py script into separate folders for 75% training and 25% validation. `batch` tells you how many image samples to pass into the network at once. We don't want to pass in one image at a time because this is time consuming and images are very inconsistent between themselves. We need to network to learn some generalisability which is better when at every snapshow of training, the model is able to see multiple examples. By default this is set to 8 times the number of GPUs. An important note is that higher batch size, whilst better for training reasons, massively increases the memory demands of the system as it has to process the batch number of images at once. This value can be modified to within reason but be aware of OOM errors that might crop up. 
+
+Everything else in the script is housekeeping and makes sure a temporary directory is created for training purposes, cleans the script and generates an output so you can see what is happening as the model learns. 
+
+When you execute the training with
+
+`ipython -- trainmodel.py Adam 1e-4 BCE elu 1 GM_UNet 6` 
+
+output and progress bars will indicate the current stage of the training. If anything happens during the preprocessing of the data, the error ususally occurs within the first couple minutes. As soon as the progress bars show the actual training process, you are in the clear in terms of whether the script is executing properly. Here the model will train on the training data, then validate on the validation data. There is usually a pause during the validation so wait several minutes to make sure nothing has gone wrong. Monitor the loss values though for the training and validation steps. They should start high and over epochs they should decrease. Once you know the model is training, and training realistically well, you can leave it over night.
+
+At the end of training there should be a new model created under the `models` directory named according to your input parameters with a `.json` and `.hdf5` file which both contain elements of the trained model. Any temporary folder created during training will be cleaned away by the `cleanup.py` script automatically. 
+
+### Testing a trained network
+
+With a trained model you might understandably want to check it works. The best way would be to analayse it with some metric such as image similarity if you have a manual/known mask of the result already. But for quick checking purposes you can use the model to predict on a new image. To do this you really only need the following snippets of code where you point to the `.json` and `.hdf5` file for your trained model. You then need to open the model and load the weights as below.
+
+```
+    model_path = '/home/gm515/Documents/GitHub/cell_counting_unet/models/2020_01_22_UNet_BCE_2/focal_unet_model.json'
+    weights_path = '/home/gm515/Documents/GitHub/cell_counting_unet/models/2020_01_22_UNet_BCE_2/focal_unet_weights.best.hdf5'
+
+    # Load the classifier model, initialise and compile
+    print ('Loading model...')
+    with open(model_path, 'r') as f:
+        model = model_from_json(f.read())
+    model.load_weights(weights_path)
+    print ('Done!') 
+```
+
+For prediction the only command you need is
+
+`pred = model.predict(image)` 
+
+where image is your loaded image. However, you might have to modify the dimensions of the image or split it up into smaller chunks. Look at `fullimageprediction.py` for an example. The key notes are that the prediction can only work on images which can be downsized the number of times that occur in the U-Net model. Therefore, the dimension of the images used for inference/prediction should be multiples of 8, or you can simply break the image in chunks of 512 x 512 pixels as we know this is already compatible as we used that image size for training.
+
+There a lot of caveats when using Keras/Tensorflow for network learning and inference. Expect a lot of teething issues. 
