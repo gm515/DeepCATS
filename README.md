@@ -2,12 +2,13 @@
 
 Repository for **Deep**learning **C**ounting in **A**natomically **T**argeted **S**tructures and general TissueCyte usage. The goal of this repo is to provide the tools and instructions for stitching TissueCyte images, registering with the Allen Brain Atlas and cell counting using the DeepCATS pipeline.
 
-This repo has broken down into different approproately-named folders.
+This repo has broken down into different appropriately-named folders.
 
 - `stitching`: contains anything regarding the tile stitching process
 - `registration`: contains anything regarding the registration to the CCF3 atlases
 - `deepcats`: contains anything to automatically cell count using the registration result
 - `trainingdeepcats`: contains anything required to train the neural network model which does inference in the cell counting pipeline
+- `additionaltools`: anything surplus but needed such as the deeplearning Anaconda environment
 
 ## Stitching
 
